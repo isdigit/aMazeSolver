@@ -1,3 +1,4 @@
+from logging import exception
 from textwrap import fill
 from time import sleep
 from tkinter import CENTER, Tk, BOTH, Canvas, messagebox
@@ -51,7 +52,8 @@ class Point:
 
 class Line:
     def __init__(self, win, x1, y1, x2, y2, line_color, width = 2):
-        self._canvas = win.canvas
+        if win is not None:
+            self._canvas = win.canvas
         self.pnt_1 = Point(x1, y1)
         self.pnt_2 = Point(x2, y2)
         self._line_color = line_color
@@ -77,7 +79,7 @@ class Center_Mark:
 
 
 class Cell():
-    def __init__(self, win, x = 0, y = 0, width = 0, height = 0,
+    def __init__(self, win = None, x = 0, y = 0, width = 0, height = 0,
                 line_color = "white", line_width = 3,
                 left_wall = True, right_wall = True,
                 top_wall = True, bottom_wall = True):
@@ -92,6 +94,9 @@ class Cell():
         self._has_right_wall = right_wall
         self._has_top_wall = top_wall
         self._has_bottom_wall = bottom_wall
+    
+    def __repr__(self):
+        return str([self._pnt_cntr.x,self._pnt_cntr.x])
 
     def set_center(self, center_point):
         self._pnt_cntr = center_point
@@ -122,16 +127,19 @@ class Cell():
         self._bottom_wall = Line(self._win, self._pnt_1.x, self._pnt_2.y, self._pnt_2.x, self._pnt_2.y, self._line_color, self._line_width)
 
     def draw(self):
-        self._calculate_walls()
-        if self._has_left_wall:
-            self._left_wall.draw()
-        if self._has_right_wall:
-            self._right_wall.draw()
-        if self._has_top_wall:
-            self._top_wall.draw()
-        if self._has_bottom_wall:
-            self._bottom_wall.draw()
-    
+        if self._win is not None:
+            self._calculate_walls()
+            if self._has_left_wall:
+                self._left_wall.draw()
+            if self._has_right_wall:
+                self._right_wall.draw()
+            if self._has_top_wall:
+                self._top_wall.draw()
+            if self._has_bottom_wall:
+                self._bottom_wall.draw()
+        else:
+            print("Cannot Cell.draw()! Window is None!")
+
     def draw_move(self, to_cell, undo=False):
         if undo:
             line_color = "red"
@@ -143,18 +151,18 @@ class Cell():
 
 class Maze:
     def __init__(self,
-        win,
-        x1,
-        y1,
-        num_rows,
-        num_cols,
-        cell_width,
-        cell_height,
-        line_color):
+        win = None,
+        x = 0,
+        y = 0,
+        num_rows = 0,
+        num_cols = 0,
+        cell_width = 0,
+        cell_height = 0,
+        line_color = "black"):
 
         self._win = win
-        self._x1 = x1 + cell_width / 2 #center x position of upper left cell
-        self._y1 = y1 + cell_height / 2 #center y position of upper left cell
+        self._x = x + cell_width / 2 #center x position of upper left cell
+        self._y = y + cell_height / 2 #center y position of upper left cell
         self._num_rows = num_rows
         self._num_cols = num_cols
         self._cell_width = cell_width
@@ -162,6 +170,30 @@ class Maze:
         self._line_color = line_color
         self._cells = []
         self.__create_cells()
+
+    def set_win(self, win):
+        self._win = win
+    
+    def set_x(self, x):
+        self._x = x
+    
+    def set_y(self, y):
+        self._y = y
+
+    def set_num_rows(self, num_rows):
+        self._num_rows = num_rows
+
+    def set_num_cols(self, num_cols):
+        self._num_cols = num_cols
+    
+    def set_cell_width(self, cell_width):
+        self._cell_width = cell_width
+
+    def set_cell_height(self, cell_height):
+        self._cell_height = cell_height
+
+    def set_line_color(self, line_color):
+        self._line_color = line_color
 
     def __create_cells(self):
         #build an array of cells [columns[rows]]
@@ -174,27 +206,29 @@ class Maze:
                 j += 1
             i += 1
 
+        #draw each cell
         i = 0
         while i < self._num_cols:
             j = 0
-            self._cells.append(list())
             while j < self._num_rows:
                 self._draw_cell(i,j)
                 j += 1
             i += 1
 
     def _draw_cell(self,i,j):
-        x = self._x1 + i * self._cell_width
-        y = self._y1 + j * self._cell_height
-        c = self._cells[i][j]
-        c.set_center(Point(x,y))
-        c.set_width(self._cell_width)
-        c.set_height(self._cell_height)
-        c.set_line_color(self._line_color)
-        c.draw()
-        #Center_Mark(self._win, x, y, 6, "violet").draw()
-        self._animate()
-
+        if self._win is not None:
+            x = self._x + i * self._cell_width
+            y = self._y + j * self._cell_height
+            c = self._cells[i][j]
+            c.set_center(Point(x,y))
+            c.set_width(self._cell_width)
+            c.set_height(self._cell_height)
+            c.set_line_color(self._line_color)
+            c.draw()
+            #Center_Mark(self._win, x, y, 6, "violet").draw()
+            self._animate()
+        else:
+            print("Cannot Maze._draw_cell()! Window is None!")
 
     def _animate(self):
         self._win.redraw()
