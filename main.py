@@ -23,8 +23,8 @@ class Window:
         self.root.protocol("WM_DELETE_WINDOW", self.close)
 
     def redraw(self):
-        self.root.update_idletasks()
-        self.root.update()
+            self.root.update_idletasks()
+            self.root.update()
 
     def wait_for_close(self):
         self.window_running = True
@@ -53,15 +53,20 @@ class Line:
     def __init__(self, win, x1, y1, x2, y2, line_color, width = 2):
         if win is not None:
             self.canvas = win.canvas
+        else:
+            self.canvas = None
         self.pnt_1 = Point(x1, y1)
         self.pnt_2 = Point(x2, y2)
         self.line_color = line_color
         self.width = width
 
     def draw(self):
-        self.canvas.create_line(self.pnt_1.x, self.pnt_1.y,
-                            self.pnt_2.x, self.pnt_2.y,
-                            fill=self.line_color, width=self.width)
+        if self.canvas is not None:
+            self.canvas.create_line(self.pnt_1.x, self.pnt_1.y,
+                                self.pnt_2.x, self.pnt_2.y,
+                                fill=self.line_color, width=self.width)
+        else:
+            print("Cannot Line.draw()! Canvas is None!")
 
 
 class Center_Mark:
@@ -146,8 +151,8 @@ class Cell():
         self.bottom_wall = Line(self.win, self.pnt_1.x, self.pnt_2.y, self.pnt_2.x, self.pnt_2.y, self.line_color, self.line_width)
 
     def draw(self):
+        self.__calculate_walls()
         if self.win is not None:
-            self.__calculate_walls()
             if self.has_left_wall:
                 self.left_wall.draw()
             if self.has_right_wall:
@@ -214,7 +219,6 @@ class Maze:
             i += 1
 
     def __draw_cell(self,i,j):
-        if self.win is not None:
             x = self.x + i * self.cell_width
             y = self.y + j * self.cell_height
             c = self.cells[i][j]
@@ -226,12 +230,14 @@ class Maze:
             c.draw()
             #Center_Mark(self.win, x, y, 6, "violet").draw()
             self.__animate()
-        else:
-            print("Cannot Maze.__draw_cell()! Window is None!")
+
 
     def __animate(self):
-        self.win.redraw()
-        sleep(.1)
+        if self.win is not None:
+            self.win.redraw()
+            sleep(.1)
+        else:
+            print("Cannot Maze.__animate()! Window is None!")
 
     def __break_entrance_and_exit(self):
         self.cells[0][0].set_wall("top",False)
