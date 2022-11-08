@@ -1,10 +1,6 @@
-#from logging import exception
-#from textwrap import fill
 from time import sleep
 from tkinter import CENTER, Tk, BOTH, Canvas, messagebox
-#from turtle import color, fillcolor
 import random
-
 
 class Window:
     def __init__(self, width, height, background_color):
@@ -66,8 +62,8 @@ class Line:
             self.canvas.create_line(self.pnt_1.x, self.pnt_1.y,
                                 self.pnt_2.x, self.pnt_2.y,
                                 fill=self.line_color, width=self.width)
-        else:
-            print("Cannot Line.draw()! Canvas is None!")
+        #else:
+            #print("Cannot Line.draw()! Canvas is None!")
 
 
 class Center_Mark:
@@ -178,8 +174,8 @@ class Cell():
             self.right_wall.draw()            
             self.top_wall.draw()
             self.bottom_wall.draw()
-        else:
-            print("Cannot Cell.draw()! Window is None!")
+        #else:
+            #print("Cannot Cell.draw()! Window is None!")
 
     def draw_move(self, to_cell, undo=False):
         if undo:
@@ -221,7 +217,8 @@ class Maze:
         self.end_cell = self.cells[-1][-1]
         print(self)
         self.__break_entrance_and_exit()
-        self.__break_walls_r(0,0)
+        self.__break_walls_r(self.start_cell.col,self.start_cell.row)
+        self.__reset_cells_visted()
 
     def __repr__(self):
         to_print = ""
@@ -269,9 +266,9 @@ class Maze:
     def __animate(self):
         if self.win is not None:
             self.win.redraw()
-            sleep(.1)
-        else:
-            print("Cannot Maze.__animate()! Window is None!")
+            sleep(.01)
+        #else:
+            #print("Cannot Maze.__animate()! Window is None!")
 
     def __break_entrance_and_exit(self):
         self.start_cell.has_top_wall = False
@@ -345,27 +342,31 @@ class Maze:
                     self.__animate()
                 
                 self.__break_walls_r(move_to.row, move_to.col)
+    
+    def __reset_cells_visted(self):
+        for i in self.cells:
+            for j in i:
+                j.visited = False
 
-class Main():
-    #try:
-        maze_height = 10 #measured in cells
-        maze_width = 10 #measured in cells
-        cell_size = 50
+def main():
+        maze_height = 20 #measured in cells
+        maze_width = 20 #measured in cells
+        cell_size = 25
         win_width = 800
         win_height = 600
         background_color = "black"
-        seed = 0    
+        seed = None
         line_color = "gray"
-        min_border = cell_size
+        min_border = 25
+    #try:
         win = Window(win_width, win_height, background_color)
-    
         Maze(win, min_border, min_border, maze_height, maze_width, cell_size, cell_size, line_color, background_color, seed)
-
         win.wait_for_close()
 
     #except Exception as exc:
     #   messagebox.showerror(message=f"!!SOMETHING WENT WRONG!!\n {exc}")
 
-Main()
+if __name__ == '__main__':
+    main()
 
 
