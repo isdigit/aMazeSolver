@@ -1,8 +1,9 @@
-from logging import exception
-from textwrap import fill
+#from logging import exception
+#from textwrap import fill
 from time import sleep
 from tkinter import CENTER, Tk, BOTH, Canvas, messagebox
-from turtle import color, fillcolor
+#from turtle import color, fillcolor
+import random
 
 
 class Window:
@@ -86,7 +87,7 @@ class Cell():
     def __init__(self, win = None, x = 0, y = 0, width = 0, height = 0,
                 line_color = "white", background_color = "black", line_width = 3,
                 left_wall = True, right_wall = True,
-                top_wall = True, bottom_wall = True):
+                top_wall = True, bottom_wall = True, col = 0, row = 0):
 
         self.win = win
         self.center_point = Point(x, y) #center point of cell
@@ -99,9 +100,12 @@ class Cell():
         self.has_right_wall = right_wall
         self.has_top_wall = top_wall
         self.has_bottom_wall = bottom_wall
+        self.visited = False
+        self.col = col
+        self.row = row
     
     def __repr__(self):
-        return str([self.center_point.x,self.center_point.y])
+        return str([self.row,self.col])
     
     #Parses and input string or list of strings for sides and sets the _has_<side>_wall to True by default or False if specified for each side specified
     #If has_<side>_wall changed from True to False, redraws the line to match the canvas background color
@@ -114,7 +118,6 @@ class Cell():
                     self.left_wall.line_color = self.line_color
                 else:
                     self.left_wall.line_color = self.background_color
-                self.left_wall.draw()
         if "right" in sides:
             if self.has_right_wall != has_wall:
                 self.has_right_wall = has_wall
@@ -122,7 +125,6 @@ class Cell():
                     self.right_wall.line_color = self.line_color
                 else:
                     self.right_wall.line_color = self.background_color
-                self.right_wall.draw()
         if "top" in sides:
             if self.has_top_wall != has_wall:
                 self.has_top_wall = has_wall
@@ -130,7 +132,6 @@ class Cell():
                     self.top_wall.line_color = self.line_color
                 else:
                     self.top_wall.line_color = self.background_color
-                self.top_wall.draw()
         if "bottom" in sides:
             if self.has_bottom_wall != has_wall:
                 self.has_bottom_wall = has_wall
@@ -138,7 +139,7 @@ class Cell():
                     self.bottom_wall.line_color = self.line_color
                 else:
                     self.bottom_wall.line_color = self.background_color
-                self.bottom_wall.draw()
+        self.draw()
 
     def __calculate_walls(self):
         self.half_width = self.width / 2
@@ -154,13 +155,29 @@ class Cell():
         self.__calculate_walls()
         if self.win is not None:
             if self.has_left_wall:
-                self.left_wall.draw()
+                self.left_wall.line_color = self.line_color
+            else:
+                self.left_wall.line_color = self.background_color
+            
             if self.has_right_wall:
-                self.right_wall.draw()
+                self.right_wall.line_color = self.line_color
+            else:
+                self.right_wall.line_color = self.background_color
+            
             if self.has_top_wall:
-                self.top_wall.draw()
+                self.top_wall.line_color = self.line_color
+            else:
+                self.top_wall.line_color = self.background_color
+
             if self.has_bottom_wall:
-                self.bottom_wall.draw()
+                self.bottom_wall.line_color = self.line_color
+            else:
+                self.bottom_wall.line_color = self.background_color
+            
+            self.left_wall.draw()
+            self.right_wall.draw()            
+            self.top_wall.draw()
+            self.bottom_wall.draw()
         else:
             print("Cannot Cell.draw()! Window is None!")
 
@@ -183,7 +200,8 @@ class Maze:
         cell_width = 0,
         cell_height = 0,
         line_color = "black",
-        background_color = "white"):
+        background_color = "white",
+        seed = None):
 
         self.win = win
         self.x = x + cell_width / 2 #center x position of upper left cell
@@ -194,9 +212,24 @@ class Maze:
         self.cell_height = cell_height
         self.line_color = line_color
         self.background_color = background_color
+        self.seed = seed
+        if seed is not None:
+            random.seed(seed)
         self.cells = []
         self.__create_cells()
+        self.start_cell = self.cells[0][0]
+        self.end_cell = self.cells[-1][-1]
+        print(self)
         self.__break_entrance_and_exit()
+        self.__break_walls_r(0,0)
+
+    def __repr__(self):
+        to_print = ""
+        for j in range(0,self.num_rows):
+            for i in range(0,self.num_cols):
+                to_print += str(self.cells[i][j])
+            to_print += "\n"
+        return to_print
 
     def __create_cells(self):
         #build an array of cells [columns[rows]]
@@ -222,6 +255,8 @@ class Maze:
             x = self.x + i * self.cell_width
             y = self.y + j * self.cell_height
             c = self.cells[i][j]
+            c.col = j
+            c.row = i
             c.center_point = Point(x,y)
             c.width = self.cell_width
             c.height = self.cell_height
@@ -229,8 +264,7 @@ class Maze:
             c.background_color = self.background_color
             c.draw()
             #Center_Mark(self.win, x, y, 6, "violet").draw()
-            self.__animate()
-
+            #self.__animate()
 
     def __animate(self):
         if self.win is not None:
@@ -240,24 +274,92 @@ class Maze:
             print("Cannot Maze.__animate()! Window is None!")
 
     def __break_entrance_and_exit(self):
-        self.cells[0][0].set_wall("top",False)
+        self.start_cell.has_top_wall = False
+        self.start_cell.draw()
         self.__animate()
-        self.cells[-1][-1].set_wall("bottom",False)
+        self.end_cell.has_bottom_wall = False
+        self.end_cell.draw()
 
+    def __break_walls_r(self, i, j):
+        current = self.cells[i][j]
+        current.visited = True
+        up = None
+        down = None
+        left = None
+        right = None
+
+        while True:
+            to_visit = []
+
+            if j > 0:
+                up = self.cells[i][j-1]
+                if not up.visited:
+                    to_visit.append(up)
+            
+            if j < self.num_rows-1:
+                down = self.cells[i][j+1]
+                if not down.visited:
+                    to_visit.append(down)
+
+            if i > 0:
+                left = self.cells[i-1][j]
+                if not left.visited:
+                    to_visit.append(left)
+
+            if i < self.num_cols-1:
+                right = self.cells[i+1][j]
+                if not right.visited:
+                    to_visit.append(right)
+
+            if not to_visit:
+                current.draw()
+                return
+            else:
+                print(f"visiting: {current}")
+                print(f"possible moves: {to_visit}")
+                move_to = random.choice(to_visit)
+                print(f"moving: {current} -> {move_to}")
+                
+                if move_to is up:
+                    current.has_top_wall = False
+                    current.draw()
+                    move_to.has_bottom_wall = False
+                    self.__animate()
+
+                if move_to is down:
+                    current.has_bottom_wall = False
+                    current.draw()
+                    move_to.has_top_wall = False
+                    self.__animate()
+                
+                if move_to is left:
+                    current.has_left_wall = False
+                    current.draw()
+                    move_to.has_right_wall = False
+                    self.__animate()
+                                
+                if move_to is right:
+                    current.has_right_wall = False
+                    current.draw()
+                    move_to.has_left_wall = False
+                    self.__animate()
+                
+                self.__break_walls_r(move_to.row, move_to.col)
 
 class Main():
     #try:
-        maze_width=10 #measured in cells
-        maze_height=10 #measured in cells
+        maze_height = 10 #measured in cells
+        maze_width = 10 #measured in cells
         cell_size = 50
         win_width = 800
         win_height = 600
-        background_color = "black"        
+        background_color = "black"
+        seed = 0    
         line_color = "gray"
         min_border = cell_size
         win = Window(win_width, win_height, background_color)
     
-        Maze(win, min_border, min_border, maze_width, maze_height, cell_size, cell_size, line_color, background_color)
+        Maze(win, min_border, min_border, maze_height, maze_width, cell_size, cell_size, line_color, background_color, seed)
 
         win.wait_for_close()
 
