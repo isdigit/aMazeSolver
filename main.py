@@ -62,15 +62,13 @@ class Line:
             self.canvas.create_line(self.pnt_1.x, self.pnt_1.y,
                                 self.pnt_2.x, self.pnt_2.y,
                                 fill=self.line_color, width=self.width)
-        #else:
-            #print("Cannot Line.draw()! Canvas is None!")
 
 
 class Center_Mark:
-    def __init__(self, win, x, y, size, line_color):
+    def __init__(self, win, cell, size, line_color):
         self.win = win
-        self.x = x
-        self.y = y
+        self.x = cell.center_point.x
+        self.y = cell.center_point.y
         self.size = size / 2
         self.line_color = line_color
 
@@ -174,15 +172,19 @@ class Cell():
             self.right_wall.draw()            
             self.top_wall.draw()
             self.bottom_wall.draw()
-        #else:
-            #print("Cannot Cell.draw()! Window is None!")
 
     def draw_move(self, to_cell, undo=False):
         if undo:
             line_color = "red"
         else:
             line_color = "green"
-        line = Line(self.win, self.center_point.x, self.center_point.y, to_cell._center_point.x, to_cell._center_point.y, line_color)
+        line = Line(self.win,
+            self.center_point.x,
+            self.center_point.y,
+            to_cell.center_point.x,
+            to_cell.center_point.y,
+            line_color)
+
         line.draw()
 
 
@@ -215,9 +217,9 @@ class Maze:
         self.__create_cells()
         self.start_cell = self.cells[0][0]
         self.end_cell = self.cells[-1][-1]
-        print(self)
+        #print(self)
         self.__break_entrance_and_exit()
-        self.__break_walls_r(self.start_cell.col,self.start_cell.row)
+        self.__break_walls_r(self.start_cell)
         self.__reset_cells_visted()
 
     def __repr__(self):
@@ -252,23 +254,20 @@ class Maze:
             x = self.x + i * self.cell_width
             y = self.y + j * self.cell_height
             c = self.cells[i][j]
-            c.col = j
-            c.row = i
+            c.col = i
+            c.row = j
             c.center_point = Point(x,y)
             c.width = self.cell_width
             c.height = self.cell_height
             c.line_color = self.line_color
             c.background_color = self.background_color
             c.draw()
-            #Center_Mark(self.win, x, y, 6, "violet").draw()
-            #self.__animate()
+            self.__animate()
 
     def __animate(self):
         if self.win is not None:
             self.win.redraw()
             sleep(.01)
-        #else:
-            #print("Cannot Maze.__animate()! Window is None!")
 
     def __break_entrance_and_exit(self):
         self.start_cell.has_top_wall = False
@@ -277,94 +276,166 @@ class Maze:
         self.end_cell.has_bottom_wall = False
         self.end_cell.draw()
 
-    def __break_walls_r(self, i, j):
-        current = self.cells[i][j]
-        current.visited = True
-        up = None
-        down = None
-        left = None
-        right = None
+    def __break_walls_r(self, cell):
+        current_cell = cell
+        current_cell.visited = True
 
         while True:
             to_visit = []
 
-            if j > 0:
-                up = self.cells[i][j-1]
+            if current_cell.row > 0:
+                up = self.cells[current_cell.col][current_cell.row-1]
                 if not up.visited:
                     to_visit.append(up)
+            else:
+                up = None
             
-            if j < self.num_rows-1:
-                down = self.cells[i][j+1]
+            if current_cell.row < self.num_rows-1:
+                down = self.cells[current_cell.col][current_cell.row+1]
                 if not down.visited:
                     to_visit.append(down)
+            else:
+                down = None
 
-            if i > 0:
-                left = self.cells[i-1][j]
+            if current_cell.col > 0:
+                left = self.cells[current_cell.col-1][current_cell.row]
                 if not left.visited:
                     to_visit.append(left)
+            else:
+                left = None
 
-            if i < self.num_cols-1:
-                right = self.cells[i+1][j]
+            if current_cell.col < self.num_cols-1:
+                right = self.cells[current_cell.col+1][current_cell.row]
                 if not right.visited:
                     to_visit.append(right)
+            else:
+                right = None
 
             if not to_visit:
-                current.draw()
+                current_cell.draw()
                 return
             else:
-                print(f"visiting: {current}")
-                print(f"possible moves: {to_visit}")
+                #print(f"visiting: {current_cell}")
+                #print(f"possible moves: {to_visit}")
                 move_to = random.choice(to_visit)
-                print(f"moving: {current} -> {move_to}")
-                
-                if move_to is up:
-                    current.has_top_wall = False
-                    current.draw()
-                    move_to.has_bottom_wall = False
-                    self.__animate()
+                #print(f"moving: {current_cell} -> {move_to}")
 
                 if move_to is down:
-                    current.has_bottom_wall = False
-                    current.draw()
+                    current_cell.has_bottom_wall = False
+                    current_cell.draw()
                     move_to.has_top_wall = False
-                    self.__animate()
                 
                 if move_to is left:
-                    current.has_left_wall = False
-                    current.draw()
+                    current_cell.has_left_wall = False
+                    current_cell.draw()
                     move_to.has_right_wall = False
-                    self.__animate()
-                                
+
+                if move_to is up:
+                    current_cell.has_top_wall = False
+                    current_cell.draw()
+                    move_to.has_bottom_wall = False
+
                 if move_to is right:
-                    current.has_right_wall = False
-                    current.draw()
+                    current_cell.has_right_wall = False
+                    current_cell.draw()
                     move_to.has_left_wall = False
-                    self.__animate()
-                
-                self.__break_walls_r(move_to.row, move_to.col)
+
+                self.__animate()                
+                self.__break_walls_r(move_to)
     
     def __reset_cells_visted(self):
         for i in self.cells:
             for j in i:
                 j.visited = False
 
+    def __solve_r(self, cell):
+        current_cell = cell
+        current_cell.visited = True
+        self.__animate()
+
+        if current_cell is self.end_cell:
+            Center_Mark(self.win,current_cell,min(current_cell.width,current_cell.height)/2,"green").draw()
+            return True
+        
+        #Check outer boundaries
+        if current_cell.row > 0:
+            up = self.cells[current_cell.col][current_cell.row-1]
+        else:
+            up = None
+        
+        if current_cell.row < self.num_rows-1:
+            down = self.cells[current_cell.col][current_cell.row+1]
+        else:
+            down = None
+        
+        if current_cell.col > 0:
+            left = self.cells[current_cell.col-1][current_cell.row]
+        else:
+            left = None
+
+        if current_cell.col < self.num_cols-1:
+            right = self.cells[current_cell.col+1][current_cell.row]
+        else:
+            right = None
+
+        if down is not None and not down.has_top_wall and not down.visited:
+            current_cell.draw_move(down)
+            #print(f"drawing down: {current_cell} -> {down}")
+            if self.__solve_r(down):
+                return True
+            else:
+                down.draw_move(current_cell, True)
+
+        if left is not None and not left.has_right_wall and not left.visited:
+            current_cell.draw_move(left)
+            #print(f"drawing left: {current_cell} -> {left}")
+            if self.__solve_r(left):
+                return True
+            else:
+                left.draw_move(current_cell, True)
+
+        #Check direction for obstructions then move if there are none
+        if up is not None and not up.has_bottom_wall and not up.visited:
+            current_cell.draw_move(up)
+            #print(f"drawing up: {current_cell} -> {up}")
+            if self.__solve_r(up):
+                return True
+            else:
+                up.draw_move(current_cell, True)
+
+        if right is not None and not right.has_left_wall and not right.visited:
+            current_cell.draw_move(right)
+            #print(f"drawing right: {current_cell} -> {right}")
+            if self.__solve_r(right):
+                return True
+            else:
+                right.draw_move(current_cell, True)
+        
+        return False
+
+    def solve(self):
+        return self.__solve_r(self.start_cell)
+    
+
 def main():
         maze_height = 20 #measured in cells
         maze_width = 20 #measured in cells
-        cell_size = 25
+        cell_width = 20
+        cell_height = 20
         win_width = 800
         win_height = 600
         background_color = "black"
         seed = None
         line_color = "gray"
         min_border = 25
-    #try:
-        win = Window(win_width, win_height, background_color)
-        Maze(win, min_border, min_border, maze_height, maze_width, cell_size, cell_size, line_color, background_color, seed)
-        win.wait_for_close()
 
-    #except Exception as exc:
-    #   messagebox.showerror(message=f"!!SOMETHING WENT WRONG!!\n {exc}")
+        try:
+            win = Window(win_width, win_height, background_color)
+            maze = Maze(win, min_border, min_border, maze_height, maze_width, cell_width, cell_height, line_color, background_color, seed)
+            maze.solve()
+            win.wait_for_close()
+        except Exception as exc:
+            messagebox.showerror(message=f"!!SOMETHING WENT WRONG!!\n {exc}")
 
 if __name__ == '__main__':
     main()
