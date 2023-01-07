@@ -47,7 +47,7 @@ class Point:
 
 
 class Line:
-    def __init__(self, win, x1, y1, x2, y2, line_color, width = 2):
+    def __init__(self, win, x1, y1, x2, y2, line_color, width = 3):
         if win is not None:
             self.canvas = win.canvas
         else:
@@ -262,12 +262,14 @@ class Maze:
             c.line_color = self.line_color
             c.background_color = self.background_color
             c.draw()
-            self.__animate()
+            #self.__animate()
 
-    def __animate(self):
-        if self.win is not None:
+    def __animate(self,time_interval = .005):
+        
+        
+        if self.win is not None and time_interval > 0:
             self.win.redraw()
-            sleep(.01)
+            sleep(time_interval)
 
     def __break_entrance_and_exit(self):
         self.start_cell.has_top_wall = False
@@ -340,7 +342,7 @@ class Maze:
                     current_cell.draw()
                     move_to.has_left_wall = False
 
-                self.__animate()                
+                self.__animate(.000001)                
                 self.__break_walls_r(move_to)
     
     def __reset_cells_visted(self):
@@ -378,38 +380,34 @@ class Maze:
         else:
             right = None
 
+		#Check direction for obstructions then move if there are none
         if down is not None and not down.has_top_wall and not down.visited:
             current_cell.draw_move(down)
             #print(f"drawing down: {current_cell} -> {down}")
             if self.__solve_r(down):
                 return True
-            else:
-                down.draw_move(current_cell, True)
+            down.draw_move(current_cell, True)
+                
+        if right is not None and not right.has_left_wall and not right.visited:
+            current_cell.draw_move(right)
+            #print(f"drawing right: {current_cell} -> {right}")
+            if self.__solve_r(right):
+                return True
+            right.draw_move(current_cell, True)
 
         if left is not None and not left.has_right_wall and not left.visited:
             current_cell.draw_move(left)
             #print(f"drawing left: {current_cell} -> {left}")
             if self.__solve_r(left):
                 return True
-            else:
-                left.draw_move(current_cell, True)
+            left.draw_move(current_cell, True)
 
-        #Check direction for obstructions then move if there are none
         if up is not None and not up.has_bottom_wall and not up.visited:
             current_cell.draw_move(up)
             #print(f"drawing up: {current_cell} -> {up}")
             if self.__solve_r(up):
                 return True
-            else:
-                up.draw_move(current_cell, True)
-
-        if right is not None and not right.has_left_wall and not right.visited:
-            current_cell.draw_move(right)
-            #print(f"drawing right: {current_cell} -> {right}")
-            if self.__solve_r(right):
-                return True
-            else:
-                right.draw_move(current_cell, True)
+            up.draw_move(current_cell, True)
         
         return False
 
@@ -417,27 +415,42 @@ class Maze:
         return self.__solve_r(self.start_cell)
     
 
-def main():
-        maze_height = 20 #measured in cells
-        maze_width = 20 #measured in cells
-        cell_width = 20
-        cell_height = 20
-        win_width = 800
-        win_height = 600
-        background_color = "black"
-        seed = None
-        line_color = "gray"
-        min_border = 25
-
+def main(maze_height = 40,
+        maze_width = 40,
+        cell_width = 15,
+        cell_height = 15,
+        win_width = 700,
+        win_height = 700,
+        background_color = "black",
+        seed = None,
+        line_color = "gray",
+        min_border = 25,
+        repeat = 5):
+        
+        maze_height = maze_height #measured in cells
+        maze_width = maze_width #measured in cells
+        cell_width = cell_width
+        cell_height = cell_height
+        win_width = win_width
+        win_height = win_height
+        background_color = background_color
+        seed = seed
+        line_color = line_color
+        min_border = min_border
+        repeat = repeat
+        
         try:
             win = Window(win_width, win_height, background_color)
-            maze = Maze(win, min_border, min_border, maze_height, maze_width, cell_width, cell_height, line_color, background_color, seed)
-            maze.solve()
+            for x in range(repeat):
+                maze = Maze(win, min_border, min_border, maze_height, maze_width, cell_width, cell_height, line_color, background_color, seed)
+                sleep(1)
+                maze.solve()
+                sleep(5)
+                win.canvas.delete("all")
+            	
             win.wait_for_close()
         except Exception as exc:
             messagebox.showerror(message=f"!!SOMETHING WENT WRONG!!\n {exc}")
 
 if __name__ == '__main__':
     main()
-
-
